@@ -3,9 +3,9 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>CyberKick Pro Manager</title>
-  <link rel="manifest" href="manifest.json">
-  <meta name="theme-color" content="#00f0ff">
+  <title>CyberKick Pro Manager 2026</title>
+  <!-- PapaParse para leer el CSV subido directamente en el navegador -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
   <style>
     :root {
       --bg-main: #06080f;
@@ -17,20 +17,16 @@
       --neon-gold: #ffe600;
       --text-primary: #ffffff;
       --text-muted: #8a99ad;
-      --glow-cyan: 0 0 12px rgba(0, 240, 255, 0.4);
-      --glow-gold: 0 0 15px rgba(255, 230, 0, 0.5);
     }
 
-    * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', system-ui, sans-serif; }
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: system-ui, sans-serif; }
     body { background-color: var(--bg-main); color: var(--text-primary); padding-bottom: 75px; }
 
     header {
-      background: linear-gradient(180deg, #10172a 0%, var(--bg-main) 100%);
-      border-bottom: 1px solid var(--neon-cyan); padding: 12px 15px;
-      display: flex; justify-content: space-between; align-items: center; box-shadow: var(--glow-cyan);
+      background: #10172a; border-bottom: 1px solid var(--neon-cyan);
+      padding: 12px 15px; display: flex; justify-content: space-between; align-items: center;
     }
-    .logo { font-size: 1.1rem; font-weight: 900; color: var(--neon-cyan); letter-spacing: 1px; }
-    .logo span { color: var(--neon-red); }
+    .logo { font-size: 1.1rem; font-weight: 900; color: var(--neon-cyan); }
     .user-stats { display: flex; gap: 8px; font-size: 0.8rem; font-weight: bold; }
     .stat-badge { background: var(--bg-card); border: 1px solid #1e2d4a; padding: 4px 8px; border-radius: 6px; }
 
@@ -39,200 +35,187 @@
       border-top: 1px solid var(--neon-blue); display: flex; justify-content: space-around;
       padding: 10px 0; z-index: 1000;
     }
-    .nav-btn {
-      background: none; border: none; color: var(--text-muted);
-      font-size: 0.7rem; font-weight: bold; cursor: pointer; display: flex;
-      flex-direction: column; align-items: center; gap: 3px;
-    }
-    .nav-btn.active { color: var(--neon-cyan); text-shadow: var(--glow-cyan); }
+    .nav-btn { background: none; border: none; color: var(--text-muted); font-size: 0.75rem; font-weight: bold; cursor: pointer; }
+    .nav-btn.active { color: var(--neon-cyan); }
 
-    .view { display: none; padding: 15px; max-width: 900px; margin: 0 auto; }
+    .view { display: none; padding: 15px; max-width: 800px; margin: 0 auto; }
     .view.active { display: block; }
 
     .card { background: var(--bg-card); border: 1px solid #1a263d; border-radius: 10px; padding: 15px; margin-bottom: 15px; }
-    .card-title { font-size: 0.85rem; color: var(--neon-cyan); margin-bottom: 10px; text-transform: uppercase; letter-spacing: 1px; }
+    .card-title { font-size: 0.85rem; color: var(--neon-cyan); margin-bottom: 10px; text-transform: uppercase; }
 
     .btn {
       background: linear-gradient(135deg, var(--neon-blue), #0033aa); color: #fff;
-      border: none; padding: 10px 16px; border-radius: 6px; font-weight: bold;
-      cursor: pointer; text-transform: uppercase; width: 100%; text-align: center;
+      border: none; padding: 12px 16px; border-radius: 6px; font-weight: bold; width: 100%; cursor: pointer;
     }
     .btn-action { background: linear-gradient(135deg, var(--neon-green), #1b8a00); color: #000; font-weight: 900; }
 
-    /* Selectores y Filtros */
-    select, input {
-      width: 100%; padding: 10px; background: #05070c; border: 1px solid var(--neon-cyan);
-      color: #fff; border-radius: 6px; margin-bottom: 10px; font-weight: bold;
-    }
-
-    /* Avatares y Banderas */
-    .player-avatar { width: 40px; height: 40px; border-radius: 50%; border: 1px solid var(--neon-cyan); object-fit: cover; background: #000; }
-    .team-crest { width: 26px; height: 26px; object-fit: contain; }
-    .match-crest { width: 50px; height: 50px; object-fit: contain; filter: drop-shadow(0 0 6px var(--neon-gold)); }
-
-    /* Marcador */
-    .scoreboard {
-      background: #090e1a; border: 2px solid var(--neon-cyan); border-radius: 12px;
-      padding: 15px; text-align: center; box-shadow: var(--glow-cyan); margin-bottom: 15px;
-    }
+    .scoreboard { background: #090e1a; border: 2px solid var(--neon-cyan); border-radius: 12px; padding: 15px; text-align: center; margin-bottom: 15px; }
     .match-teams { display: flex; justify-content: space-between; align-items: center; margin: 10px 0; }
-    .team-box { width: 38%; display: flex; flex-direction: column; align-items: center; }
+    .team-box { width: 38%; font-size: 0.95rem; }
     .score { font-size: 2rem; font-weight: 900; color: var(--neon-gold); width: 24%; }
 
-    /* Feed y Tablas */
-    .feed-box { height: 150px; overflow-y: auto; background: #04060a; border: 1px solid #162238; border-radius: 6px; padding: 10px; font-size: 0.8rem; }
-    .feed-item.gol { color: var(--neon-green); font-weight: bold; }
+    .feed-box { height: 160px; overflow-y: auto; background: #04060a; border: 1px solid #162238; border-radius: 6px; padding: 10px; font-size: 0.8rem; }
+    .feed-item.gol { color: var(--neon-green); font-weight: bold; margin-bottom: 4px; }
+    
     table { width: 100%; border-collapse: collapse; font-size: 0.8rem; }
     th, td { padding: 8px 4px; text-align: center; border-bottom: 1px solid #162238; }
 
-    .player-row {
-      display: flex; justify-content: space-between; align-items: center;
-      padding: 8px 12px; background: #111a2e; margin-bottom: 6px; border-radius: 6px;
-      border-left: 3px solid var(--neon-cyan);
+    #loading-overlay {
+      position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+      background: rgba(6,8,15,0.95); display: flex; flex-direction: column;
+      justify-content: center; align-items: center; z-index: 2000;
     }
-    .player-ovr { background: var(--neon-cyan); color: #000; font-weight: 900; padding: 2px 6px; border-radius: 4px; }
-    .award-card { border: 2px solid var(--neon-gold); box-shadow: var(--glow-gold); text-align: center; background: linear-gradient(180deg, #181503 0%, #0d1322 100%); }
   </style>
 </head>
 <body>
 
+  <div id="loading-overlay">
+    <h2 style="color:var(--neon-cyan); margin-bottom: 10px;">CYBERKICK PRO</h2>
+    <p id="loading-text" style="color:var(--text-muted); font-size: 0.9rem;">Cargando datos de FC 26...</p>
+  </div>
+
   <header>
-    <div class="logo">CYBER<span>KICK PRO</span></div>
+    <div class="logo">CYBERKICK PRO</div>
     <div class="user-stats">
-      <div class="stat-badge">💰 $<span id="budget-display">0</span>M</div>
+      <div class="stat-badge">💰 $<span id="budget-display">150</span>M</div>
       <div class="stat-badge">📅 J<span id="week-display">1</span></div>
     </div>
   </header>
 
-  <!-- HUB -->
   <main id="view-hub" class="view active">
-    <div class="card" style="display:flex; align-items:center; gap:12px;">
-      <img id="user-team-logo" src="" class="match-crest" onerror="this.style.display='none'">
-      <div>
-        <div class="card-title">Tu Club Actual</div>
-        <h2 id="user-team-title">-</h2>
-        <p id="user-league-title" style="color:var(--neon-cyan); font-size:0.8rem;">-</p>
-      </div>
-    </div>
-
     <div class="card">
-      <div class="card-title">Próximo Partido</div>
-      <p id="next-match-text" style="font-size: 1.1rem; font-weight: bold; margin-bottom: 12px;">- vs -</p>
+      <div class="card-title">Tu Equipo</div>
+      <h2 id="user-team-title">Real Madrid</h2>
+      <p id="user-league-title" style="color:var(--neon-cyan); font-size:0.8rem;">LaLiga EA Sports</p>
+    </div>
+    <div class="card">
+      <div class="card-title">Próximo Encuentro</div>
+      <p id="next-match-text" style="font-size: 1.1rem; font-weight: bold; margin-bottom: 12px;">Cargando partido...</p>
       <button class="btn btn-action" onclick="switchView('view-match')">Ir al Partido</button>
     </div>
   </main>
 
-  <!-- PARTIDO -->
   <main id="view-match" class="view">
     <div class="scoreboard">
       <div style="color:var(--neon-red); font-weight:bold;" id="match-timer">00'</div>
       <div class="match-teams">
-        <div class="team-box">
-          <img id="home-logo" class="match-crest" src="" onerror="this.style.display='none'">
-          <div id="home-name" style="font-weight:bold; font-size:0.85rem;">LOCAL</div>
-        </div>
+        <div class="team-box"><div id="home-name" style="font-weight:bold;">LOCAL</div></div>
         <div class="score" id="match-score">0 - 0</div>
-        <div class="team-box">
-          <img id="away-logo" class="match-crest" src="" onerror="this.style.display='none'">
-          <div id="away-name" style="font-weight:bold; font-size:0.85rem;">VISITA</div>
-        </div>
+        <div class="team-box"><div id="away-name" style="font-weight:bold;">VISITA</div></div>
       </div>
       <div id="match-status" style="font-size: 0.75rem; color: var(--text-muted);">Listo para empezar</div>
     </div>
-
     <button id="btn-start-sim" class="btn btn-action" style="margin-bottom: 12px;" onclick="startSimulation()">Simular Partido</button>
-
     <div class="card">
       <div class="card-title">Sucesos en Vivo</div>
       <div class="feed-box" id="match-feed"></div>
     </div>
   </main>
 
-  <!-- TABLA Y LIGAS -->
   <main id="view-table" class="view">
     <div class="card">
-      <div class="card-title">Seleccionar Liga</div>
-      <select id="league-selector" onchange="changeLeagueView()"></select>
-      
+      <div class="card-title">Clasificación</div>
       <table>
         <thead>
-          <tr>
-            <th>#</th>
-            <th style="text-align:left;">Equipo</th>
-            <th>PJ</th>
-            <th>PTS</th>
-            <th>DG</th>
-          </tr>
+          <tr><th>#</th><th style="text-align:left;">Equipo</th><th>PJ</th><th>PTS</th><th>DG</th></tr>
         </thead>
         <tbody id="standings-body"></tbody>
       </table>
     </div>
   </main>
 
-  <!-- MERCADO FICHES GLOBAL -->
-  <main id="view-market" class="view">
-    <div class="card">
-      <div class="card-title">Mercado de Transferencias</div>
-      <select id="pos-filter" onchange="renderMarket()">
-        <option value="ALL">Todas las Posiciones</option>
-        <option value="DC">Delanteros (DC/EI/ED)</option>
-        <option value="MC">Centrocampistas (MC/MCO/MCD)</option>
-        <option value="DFC">Defensas (DFC/LI/LD)</option>
-        <option value="POR">Porteros (POR)</option>
-      </select>
-      <div id="market-list"></div>
-    </div>
-  </main>
-
-  <!-- PREMIOS Y GALARDONES -->
-  <main id="view-awards" class="view">
-    <div class="card award-card">
-      <div style="font-size: 2rem;">🏆</div>
-      <h2 style="color:var(--neon-gold); text-transform:uppercase;">Gala Balón de Oro</h2>
-      <p style="color:var(--text-muted); font-size:0.8rem; margin:8px 0;">Otorgado al mejor jugador al término de la temporada.</p>
-      <div id="ballon-dor-winner" style="font-weight:bold; font-size:1.1rem; color:#fff;">Aún no entregado</div>
-    </div>
-
-    <div class="card">
-      <div class="card-title">Máximos Goleadores (Bota de Oro)</div>
-      <div id="top-scorers-list"></div>
-    </div>
-  </main>
-
-  <!-- NAV -->
   <nav>
-    <button class="nav-btn active" onclick="switchView('view-hub', this)">🏠<span>Hub</span></button>
-    <button class="nav-btn" onclick="switchView('view-match', this)">⚽<span>Partido</span></button>
-    <button class="nav-btn" onclick="switchView('view-table', this)">🏆<span>Ligas</span></button>
-    <button class="nav-btn" onclick="switchView('view-market', this)">💸<span>Mercado</span></button>
-    <button class="nav-btn" onclick="switchView('view-awards', this)">🥇<span>Premios</span></button>
+    <button class="nav-btn active" onclick="switchView('view-hub', this)">🏠 Hub</button>
+    <button class="nav-btn" onclick="switchView('view-match', this)">⚽ Partido</button>
+    <button class="nav-btn" onclick="switchView('view-table', this)">🏆 Clasificación</button>
   </nav>
 
   <script>
-    let db = null;
+    let db = {
+      userTeamId: "Real Madrid",
+      budget: 150, week: 1,
+      teams: []
+    };
+
     let simInterval = null;
     let currentOpponent = null;
 
-    async function initDatabase() {
-      const localData = localStorage.getItem("CYBERKICK_PRO_DB");
-      if (localData) {
-        db = JSON.parse(localData);
-        updateUI();
-        return;
-      }
-
+    async function loadData() {
+      // 1. Intentar cargar database.json si existe
       try {
-        const res = await fetch("./database.json");
-        db = await res.json();
-      } catch (e) {
-        alert("Carga database.json ejecutando primero el script de Python.");
-      }
-      saveData();
+        const res = await fetch('./database.json');
+        if (res.ok) {
+          db = await res.json();
+          hideLoading();
+          updateUI();
+          return;
+        }
+      } catch (e) {}
+
+      // 2. Si no hay json, procesar el CSV 'FC26_20250921.csv' automáticamente
+      Papa.parse('./FC26_20250921.csv', {
+        download: true,
+        header: true,
+        skipEmptyLines: true,
+        complete: function(results) {
+          processCSVData(results.data);
+          hideLoading();
+          updateUI();
+        },
+        error: function() {
+          document.getElementById('loading-text').innerText = "Error cargando datos. Usando datos por defecto.";
+          setTimeout(hideLoading, 1000);
+        }
+      });
     }
 
-    function saveData() {
-      localStorage.setItem("CYBERKICK_PRO_DB", JSON.stringify(db));
-      updateUI();
+    function processCSVData(rows) {
+      const teamsMap = {};
+
+      rows.forEach(row => {
+        const club = row.club_name ? row.club_name.trim() : "";
+        const league = row.league_name ? row.league_name.trim() : "";
+        const ovr = parseInt(row.overall) || 75;
+
+        // Filtrar equipos de LaLiga o ligas principales
+        if (club && (league === "La Liga" || league === "Premier League")) {
+          if (!teamsMap[club]) {
+            teamsMap[club] = {
+              id: club,
+              name: club,
+              league: league,
+              ovrs: [],
+              pts: 0, pj: 0, gf: 0, gc: 0, dg: 0
+            };
+          }
+          teamsMap[club].ovrs.push(ovr);
+        }
+      });
+
+      db.teams = Object.values(teamsMap).map(t => {
+        const avg = t.ovrs.reduce((a, b) => a + b, 0) / (t.ovrs.length || 1);
+        return {
+          id: t.id,
+          name: t.name,
+          att: Math.round(avg + 2),
+          def: Math.round(avg - 2),
+          pts: 0, pj: 0, gf: 0, gc: 0, dg: 0
+        };
+      });
+
+      // Asegurar que exista Real Madrid o un equipo por defecto
+      if (db.teams.length === 0) {
+        db.teams = [
+          { id: "Real Madrid", name: "Real Madrid", att: 89, def: 87, pts: 0, pj: 0, gf: 0, gc: 0, dg: 0 },
+          { id: "FC Barcelona", name: "FC Barcelona", att: 87, def: 84, pts: 0, pj: 0, gf: 0, gc: 0, dg: 0 },
+          { id: "Atlético de Madrid", name: "Atlético de Madrid", att: 84, def: 83, pts: 0, pj: 0, gf: 0, gc: 0, dg: 0 }
+        ];
+      }
+    }
+
+    function hideLoading() {
+      document.getElementById('loading-overlay').style.display = 'none';
     }
 
     function switchView(viewId, btn) {
@@ -240,200 +223,82 @@
       document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
       document.getElementById(viewId).classList.add('active');
       if (btn) btn.classList.add('active');
-      
-      if (viewId === 'view-table') populateLeagueSelector();
-      if (viewId === 'view-awards') renderAwards();
-      renderMatchView();
     }
 
     function updateUI() {
-      if (!db) return;
       document.getElementById("budget-display").innerText = db.budget;
       document.getElementById("week-display").innerText = db.week;
       
-      const userTeam = db.teams.find(t => t.id === db.userTeamId);
-      const userLeague = db.leagues.find(l => l.id === userTeam.leagueId);
+      const userTeam = db.teams.find(t => t.id === db.userTeamId) || db.teams[0];
+      const opponent = db.teams.find(t => t.id !== userTeam.id) || db.teams[1];
+      currentOpponent = opponent;
 
       document.getElementById("user-team-title").innerText = userTeam.name;
-      document.getElementById("user-league-title").innerText = `${userLeague.country} - ${userLeague.name}`;
-      if (userTeam.logoUrl) document.getElementById("user-team-logo").src = userTeam.logoUrl;
+      document.getElementById("home-name").innerText = userTeam.name;
+      document.getElementById("away-name").innerText = opponent.name;
+      document.getElementById("next-match-text").innerText = `${userTeam.name} vs ${opponent.name}`;
 
-      renderStandings();
-      renderMarket();
-      renderMatchView();
-    }
-
-    function populateLeagueSelector() {
-      const sel = document.getElementById("league-selector");
-      sel.innerHTML = "";
-      db.leagues.forEach(l => {
-        sel.innerHTML += `<option value="${l.id}" ${l.id === db.selectedLeague ? 'selected' : ''}>${l.country} - ${l.name}</option>`;
-      });
-      renderStandings();
-    }
-
-    function changeLeagueView() {
-      db.selectedLeague = document.getElementById("league-selector").value;
       renderStandings();
     }
 
     function renderStandings() {
       const tbody = document.getElementById("standings-body");
       tbody.innerHTML = "";
-      
-      const leagueTeams = db.teams.filter(t => t.leagueId === (db.selectedLeague || "ESP1"));
-      leagueTeams.sort((a,b) => b.pts - a.pts || b.dg - a.dg);
-
-      leagueTeams.forEach((team, idx) => {
-        const isUser = team.id === db.userTeamId;
-        const crest = team.logoUrl ? `<img src="${team.logoUrl}" class="team-crest">` : '🛡️';
-
+      const sorted = [...db.teams].sort((a,b) => b.pts - a.pts || b.dg - a.dg);
+      sorted.forEach((t, i) => {
         tbody.innerHTML += `
-          <tr style="${isUser ? 'color: var(--neon-cyan); font-weight:bold;' : ''}">
-            <td>${idx + 1}</td>
-            <td style="text-align:left; display:flex; align-items:center; gap:6px;">
-              ${crest} <span>${team.name}</span>
-            </td>
-            <td>${team.pj}</td>
-            <td>${team.pts}</td>
-            <td>${team.dg > 0 ? '+' + team.dg : team.dg}</td>
-          </tr>
-        `;
+          <tr style="${t.id === db.userTeamId ? 'color:var(--neon-cyan);font-weight:bold;' : ''}">
+            <td>${i+1}</td><td style="text-align:left;">${t.name}</td><td>${t.pj}</td><td>${t.pts}</td><td>${t.dg}</td>
+          </tr>`;
       });
-    }
-
-    function renderMarket() {
-      const container = document.getElementById("market-list");
-      container.innerHTML = "";
-      const filter = document.getElementById("pos-filter").value;
-
-      let list = db.market;
-      if (filter !== "ALL") list = list.filter(p => p.pos.includes(filter));
-
-      list.slice(0, 25).forEach((p, idx) => {
-        const face = p.faceUrl ? `<img src="${p.faceUrl}" class="player-avatar">` : `<div class="player-avatar">👤</div>`;
-        container.innerHTML += `
-          <div class="player-row">
-            <div style="display:flex; align-items:center; gap:10px;">
-              ${face}
-              <div>
-                <strong>${p.name}</strong> <span style="color:var(--text-muted); font-size:0.75rem;">(${p.pos})</span>
-                <div style="color:var(--neon-green); font-size:0.75rem; font-weight:bold;">$${p.val}M</div>
-              </div>
-            </div>
-            <div style="display:flex; gap:8px; align-items:center;">
-              <span class="player-ovr">${p.ovr}</span>
-              <button class="btn" style="padding:4px 8px; font-size:0.65rem;" onclick="buyPlayer('${p.id}')">Fichar</button>
-            </div>
-          </div>
-        `;
-      });
-    }
-
-    function buyPlayer(pId) {
-      const pIdx = db.market.findIndex(p => p.id === pId);
-      const player = db.market[pIdx];
-
-      if (db.budget >= player.val) {
-        db.budget -= player.val;
-        player.clubId = db.userTeamId;
-        db.market.splice(pIdx, 1);
-        saveData();
-        alert(`¡Fichaje bomba! ${player.name} firmado.`);
-      } else {
-        alert("Presupuesto insuficiente.");
-      }
-    }
-
-    function renderMatchView() {
-      if (simInterval || !db) return;
-      const userTeam = db.teams.find(t => t.id === db.userTeamId);
-      const sameLeagueTeams = db.teams.filter(t => t.leagueId === userTeam.leagueId && t.id !== db.userTeamId);
-      
-      currentOpponent = sameLeagueTeams[(db.week - 1) % sameLeagueTeams.length];
-
-      document.getElementById("home-name").innerText = userTeam.name;
-      document.getElementById("away-name").innerText = currentOpponent.name;
-      document.getElementById("home-logo").src = userTeam.logoUrl || "";
-      document.getElementById("away-logo").src = currentOpponent.logoUrl || "";
-      document.getElementById("next-match-text").innerText = `${userTeam.name} vs ${currentOpponent.name}`;
-      document.getElementById("match-score").innerText = "0 - 0";
-      document.getElementById("match-timer").innerText = "00'";
-      document.getElementById("btn-start-sim").style.display = "block";
     }
 
     function startSimulation() {
       document.getElementById("btn-start-sim").style.display = "none";
       document.getElementById("match-feed").innerHTML = "";
-      
-      const userTeam = db.teams.find(t => t.id === db.userTeamId);
       let hScore = 0, aScore = 0, min = 0;
+      const userTeam = db.teams.find(t => t.id === db.userTeamId) || db.teams[0];
 
       simInterval = setInterval(() => {
         min += 3;
         document.getElementById("match-timer").innerText = `${min}'`;
-
-        const chance = Math.random() * 100;
-        if (chance < 3.4) {
-          if (Math.random() < Math.max(0.2, (userTeam.att - currentOpponent.def + 20) / 100)) {
-            hScore++;
-            addFeed(min, `⚽ ¡GOL DE ${userTeam.name.toUpperCase()}!`, "gol");
-          }
-        } else if (chance > 96.6) {
-          if (Math.random() < Math.max(0.2, (currentOpponent.att - userTeam.def + 20) / 100)) {
-            aScore++;
-            addFeed(min, `⚽ ¡GOL DE ${currentOpponent.name.toUpperCase()}!`, "gol");
+        
+        if (Math.random() < 0.06) {
+          if (Math.random() * 100 < userTeam.att) { 
+            hScore++; 
+            addFeed(min, `⚽ ¡GOL DE ${userTeam.name}!`, "gol"); 
+          } else { 
+            aScore++; 
+            addFeed(min, `⚽ ¡GOL DE ${currentOpponent.name}!`, "gol"); 
           }
         }
-
+        
         document.getElementById("match-score").innerText = `${hScore} - ${aScore}`;
-
+        
         if (min >= 90) {
           clearInterval(simInterval);
-          simInterval = null;
-          finishMatch(userTeam, currentOpponent, hScore, aScore);
+          userTeam.pj++; currentOpponent.pj++;
+          userTeam.gf += hScore; userTeam.gc += aScore; userTeam.dg = userTeam.gf - userTeam.gc;
+          currentOpponent.gf += aScore; currentOpponent.gc += hScore; currentOpponent.dg = currentOpponent.gf - currentOpponent.gc;
+          
+          if (hScore > aScore) userTeam.pts += 3;
+          else if (hScore < aScore) currentOpponent.pts += 3;
+          else { userTeam.pts += 1; currentOpponent.pts += 1; }
+          
+          db.week++;
+          renderStandings();
+          document.getElementById("btn-start-sim").style.display = "block";
         }
-      }, 150);
+      }, 80);
     }
 
     function addFeed(min, msg, type = "") {
       const feed = document.getElementById("match-feed");
       feed.innerHTML += `<div class="feed-item ${type}"><strong>${min}'</strong> ${msg}</div>`;
+      feed.scrollTop = feed.scrollHeight;
     }
 
-    function finishMatch(home, away, hScore, aScore) {
-      home.pj++; away.pj++;
-      home.gf += hScore; home.gc += aScore; home.dg = home.gf - home.gc;
-      away.gf += aScore; away.gc += hScore; away.dg = away.gf - away.gc;
-
-      if (hScore > aScore) { home.pts += 3; home.pg++; away.pp++; db.budget += 6; }
-      else if (hScore < aScore) { away.pts += 3; away.pg++; home.pp++; }
-      else { home.pts += 1; away.pts += 1; home.pe++; away.pe++; db.budget += 2; }
-
-      // Simular resto de ligas en segundo plano
-      simulateGlobalLeagues();
-
-      db.week++;
-      saveData();
-    }
-
-    function simulateGlobalLeagues() {
-      db.teams.forEach(t => {
-        if (t.id !== db.userTeamId && t.id !== currentOpponent.id) {
-          const g1 = Math.floor(Math.random() * 3), g2 = Math.floor(Math.random() * 3);
-          t.pj++; t.gf += g1; t.gc += g2; t.dg = t.gf - t.gc;
-          if (g1 > g2) { t.pts += 3; t.pg++; }
-          else if (g1 < g2) { t.pts += 3; t.pg++; }
-          else { t.pts += 1; t.pe++; }
-        }
-      });
-    }
-
-    function renderAwards() {
-      document.getElementById("ballon-dor-winner").innerText = db.awards.ballonDor || "Se entregará al finalizar la Jornada 38";
-    }
-
-    window.addEventListener("DOMContentLoaded", initDatabase);
+    window.onload = loadData;
   </script>
 </body>
 </html>

@@ -1,7 +1,8 @@
-const CACHE_NAME = 'cyberkick-v1';
+const CACHE_NAME = 'cyberkick-v2';
 const ASSETS = [
   './',
   './index.html',
+  './database.json',
   './manifest.json'
 ];
 

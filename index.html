@@ -1,0 +1,458 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>CyberKick Neon Manager</title>
+  <link rel="manifest" href="manifest.json">
+  <meta name="theme-color" content="#00f0ff">
+  <style>
+    :root {
+      --bg-main: #06080f;
+      --bg-card: #0d1322;
+      --bg-card-hover: #162038;
+      --neon-cyan: #00f0ff;
+      --neon-blue: #0066ff;
+      --neon-red: #ff2a5f;
+      --neon-green: #39ff14;
+      --neon-yellow: #ffe600;
+      --text-primary: #ffffff;
+      --text-muted: #8a99ad;
+      --glow-cyan: 0 0 12px rgba(0, 240, 255, 0.4);
+      --glow-red: 0 0 12px rgba(255, 42, 95, 0.4);
+      --glow-green: 0 0 12px rgba(57, 255, 20, 0.4);
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', system-ui, sans-serif; }
+    body { background-color: var(--bg-main); color: var(--text-primary); padding-bottom: 70px; }
+
+    /* Top Bar */
+    header {
+      background: linear-gradient(180deg, #10172a 0%, var(--bg-main) 100%);
+      border-bottom: 1px solid var(--neon-cyan);
+      padding: 15px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      box-shadow: var(--glow-cyan);
+    }
+    .logo { font-size: 1.2rem; font-weight: 900; letter-spacing: 1px; color: var(--neon-cyan); text-transform: uppercase; }
+    .logo span { color: var(--neon-red); }
+    .user-stats { display: flex; gap: 15px; font-size: 0.85rem; font-weight: bold; }
+    .stat-badge { background: var(--bg-card); border: 1px solid #1e2d4a; padding: 5px 10px; border-radius: 6px; }
+
+    /* Navigation Bar */
+    nav {
+      position: fixed; bottom: 0; width: 100%; background: #080c18;
+      border-top: 1px solid var(--neon-blue); display: flex; justify-content: space-around;
+      padding: 10px 0; z-index: 1000;
+    }
+    .nav-btn {
+      background: none; border: none; color: var(--text-muted);
+      font-size: 0.75rem; font-weight: bold; cursor: pointer; display: flex;
+      flex-direction: column; align-items: center; gap: 4px;
+    }
+    .nav-btn.active { color: var(--neon-cyan); text-shadow: var(--glow-cyan); }
+
+    /* Container Views */
+    .view { display: none; padding: 15px; max-width: 800px; margin: 0 auto; }
+    .view.active { display: block; }
+
+    /* Components UI */
+    .card {
+      background: var(--bg-card); border: 1px solid #1a263d;
+      border-radius: 10px; padding: 15px; margin-bottom: 15px;
+    }
+    .card-title { font-size: 1rem; color: var(--neon-cyan); margin-bottom: 10px; text-transform: uppercase; }
+    
+    .btn {
+      background: linear-gradient(135deg, var(--neon-blue), #0033aa);
+      color: #fff; border: none; padding: 12px 20px; border-radius: 6px;
+      font-weight: bold; cursor: pointer; text-transform: uppercase;
+      width: 100%; text-align: center; box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+      transition: all 0.2s;
+    }
+    .btn:active { transform: scale(0.98); }
+    .btn-action { background: linear-gradient(135deg, var(--neon-green), #1b8a00); color: #000; box-shadow: var(--glow-green); }
+    .btn-danger { background: linear-gradient(135deg, var(--neon-red), #990026); color: #fff; }
+
+    /* Match Simulator Screen */
+    .scoreboard {
+      background: linear-gradient(180deg, #101a2e 0%, #080d17 100%);
+      border: 2px solid var(--neon-cyan); border-radius: 12px; padding: 20px;
+      text-align: center; box-shadow: var(--glow-cyan); margin-bottom: 15px;
+    }
+    .match-teams { display: flex; justify-content: space-between; align-items: center; margin: 15px 0; }
+    .team-name { font-size: 1.1rem; font-weight: bold; width: 35%; }
+    .score { font-size: 2.2rem; font-weight: 900; color: var(--neon-yellow); width: 30%; letter-spacing: 2px; }
+    .timer { font-size: 0.9rem; color: var(--neon-red); font-weight: bold; margin-bottom: 5px; }
+
+    /* Live Feed */
+    .feed-box {
+      height: 180px; overflow-y: auto; background: #05070c; border: 1px solid #1a263d;
+      border-radius: 8px; padding: 10px; font-size: 0.85rem; display: flex; flex-direction: column-reverse;
+    }
+    .feed-item { padding: 4px 0; border-bottom: 1px solid #101826; }
+    .feed-item.gol { color: var(--neon-green); font-weight: bold; }
+
+    /* Standings Table */
+    table { width: 100%; border-collapse: collapse; font-size: 0.85rem; }
+    th, td { padding: 8px 6px; text-align: center; border-bottom: 1px solid #162238; }
+    th { color: var(--neon-cyan); text-align: center; }
+    td.team-col { text-align: left; font-weight: bold; }
+
+    /* Player Cards List */
+    .player-row {
+      display: flex; justify-content: space-between; align-items: center;
+      padding: 10px; background: #111a2e; margin-bottom: 8px; border-radius: 6px;
+      border-left: 3px solid var(--neon-cyan);
+    }
+    .player-ovr {
+      background: var(--neon-cyan); color: #000; font-weight: 900;
+      padding: 4px 8px; border-radius: 4px; font-size: 0.85rem;
+    }
+  </style>
+</head>
+<body>
+
+  <header>
+    <div class="logo">CYBER<span>KICK</span></div>
+    <div class="user-stats">
+      <div class="stat-badge">💰 $<span id="budget-display">0</span>M</div>
+      <div class="stat-badge">📅 J<span id="week-display">1</span></div>
+    </div>
+  </header>
+
+  <!-- VISTA 1: CENTRAL / DASHBOARD -->
+  <main id="view-hub" class="view active">
+    <div class="card">
+      <div class="card-title">Tu Club</div>
+      <h2 id="user-team-title" style="color: var(--text-primary); margin-bottom: 5px;">-</h2>
+      <p style="color: var(--text-muted); font-size: 0.85rem;">Liga: Primera División Neon</p>
+    </div>
+
+    <div class="card">
+      <div class="card-title">Próximo Partido</div>
+      <p id="next-match-text" style="font-size: 1.1rem; font-weight: bold; margin-bottom: 15px;">- vs -</p>
+      <button class="btn btn-action" onclick="switchView('view-match')">Ir a Jugar Match</button>
+    </div>
+  </main>
+
+  <!-- VISTA 2: SIMULADOR DE PARTIDO -->
+  <main id="view-match" class="view">
+    <div class="scoreboard">
+      <div class="timer" id="match-timer">00'</div>
+      <div class="match-teams">
+        <div class="team-name" id="home-name">LOCAL</div>
+        <div class="score" id="match-score">0 - 0</div>
+        <div class="team-name" id="away-name">VISITA</div>
+      </div>
+      <div id="match-status" style="font-size: 0.8rem; color: var(--text-muted);">Listo para iniciar</div>
+    </div>
+
+    <button id="btn-start-sim" class="btn btn-action" style="margin-bottom: 15px;" onclick="startSimulation()">Simular Partido</button>
+
+    <div class="card">
+      <div class="card-title">Minuto a Minuto</div>
+      <div class="feed-box" id="match-feed"></div>
+    </div>
+  </main>
+
+  <!-- VISTA 3: TABLA DE POSICIONES -->
+  <main id="view-table" class="view">
+    <div class="card">
+      <div class="card-title">Clasificación General</div>
+      <table>
+        <thead>
+          <tr>
+            <th>#</th>
+            <th style="text-align: left;">Equipo</th>
+            <th>PJ</th>
+            <th>PTS</th>
+            <th>DG</th>
+          </tr>
+        </thead>
+        <tbody id="standings-body"></tbody>
+      </table>
+    </div>
+  </main>
+
+  <!-- VISTA 4: PLANTILLA -->
+  <main id="view-squad" class="view">
+    <div class="card">
+      <div class="card-title">Plantilla Actual</div>
+      <div id="squad-list"></div>
+    </div>
+  </main>
+
+  <!-- VISTA 5: MERCADO DE FICHAJES -->
+  <main id="view-market" class="view">
+    <div class="card">
+      <div class="card-title">Jugadores Disponibles</div>
+      <div id="market-list"></div>
+    </div>
+  </main>
+
+  <!-- NAVEGACIÓN INFERIOR -->
+  <nav>
+    <button class="nav-btn active" onclick="switchView('view-hub', this)">🏠<span>Hub</span></button>
+    <button class="nav-btn" onclick="switchView('view-match', this)">⚽<span>Partido</span></button>
+    <button class="nav-btn" onclick="switchView('view-table', this)">🏆<span>Tabla</span></button>
+    <button class="nav-btn" onclick="switchView('view-squad', this)">📋<span>Equipo</span></button>
+    <button class="nav-btn" onclick="switchView('view-market', this)">💸<span>Mercado</span></button>
+  </nav>
+
+  <script>
+    // --- BASE DE DATOS INICIAL ---
+    const defaultData = {
+      userTeamId: "RM",
+      budget: 120,
+      week: 1,
+      teams: [
+        { id: "RM", name: "Real Madrid", att: 89, def: 86, pts: 0, pj: 0, dg: 0 },
+        { id: "FCB", name: "FC Barcelona", att: 87, def: 84, pts: 0, pj: 0, dg: 0 },
+        { id: "ATM", name: "Atlético Madrid", att: 83, def: 85, pts: 0, pj: 0, dg: 0 },
+        { id: "MCI", name: "Manchester City", att: 90, def: 87, pts: 0, pj: 0, dg: 0 },
+        { id: "LIV", name: "Liverpool FC", att: 86, def: 85, pts: 0, pj: 0, dg: 0 },
+        { id: "BAY", name: "Bayern München", att: 88, def: 83, pts: 0, pj: 0, dg: 0 }
+      ],
+      squad: [
+        { name: "Vinícius Jr.", pos: "EI", ovr: 89, val: 120 },
+        { name: "Kylian Mbappé", pos: "DC", ovr: 91, val: 150 },
+        { name: "Jude Bellingham", pos: "MC", ovr: 90, val: 130 },
+        { name: "Federico Valverde", pos: "MC", ovr: 88, val: 90 },
+        { name: "Antonio Rüdiger", pos: "DFC", ovr: 87, val: 45 },
+        { name: "Thibaut Courtois", pos: "POR", ovr: 89, val: 50 }
+      ],
+      market: [
+        { name: "Erling Haaland", pos: "DC", ovr: 91, val: 140 },
+        { name: "Lamine Yamal", pos: "ED", ovr: 87, val: 95 },
+        { name: "Pedri González", pos: "MC", ovr: 86, val: 75 },
+        { name: "Rodri Hernández", pos: "MCD", ovr: 90, val: 110 }
+      ]
+    };
+
+    // Estado Local
+    let db = JSON.parse(localStorage.getItem("CYBERKICK_DB")) || defaultData;
+
+    function saveData() {
+      localStorage.setItem("CYBERKICK_DB", JSON.stringify(db));
+      updateUI();
+    }
+
+    // --- NAVEGACIÓN DE PANTALLAS ---
+    function switchView(viewId, btn) {
+      document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+      document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+      
+      document.getElementById(viewId).classList.add('active');
+      if (btn) btn.classList.add('active');
+      renderMatchView();
+    }
+
+    // --- ACTUALIZACIÓN GLOBAL DE INTERFAZ ---
+    function updateUI() {
+      document.getElementById("budget-display").innerText = db.budget;
+      document.getElementById("week-display").innerText = db.week;
+      
+      const userTeam = db.teams.find(t => t.id === db.userTeamId);
+      document.getElementById("user-team-title").innerText = userTeam.name;
+
+      renderStandings();
+      renderSquad();
+      renderMarket();
+      renderMatchView();
+    }
+
+    // --- RENDER TABLA DE POSICIONES ---
+    function renderStandings() {
+      const tbody = document.getElementById("standings-body");
+      tbody.innerHTML = "";
+      
+      // Ordenar por Puntos -> Diferencia de Goles
+      const sorted = [...db.teams].sort((a,b) => b.pts - a.pts || b.dg - a.dg);
+
+      sorted.forEach((team, idx) => {
+        const isUser = team.id === db.userTeamId;
+        tbody.innerHTML += `
+          <tr style="${isUser ? 'color: var(--neon-cyan); font-weight:bold;' : ''}">
+            <td>${idx + 1}</td>
+            <td class="team-col">${team.name}</td>
+            <td>${team.pj}</td>
+            <td>${team.pts}</td>
+            <td>${team.dg > 0 ? '+' + team.dg : team.dg}</td>
+          </tr>
+        `;
+      });
+    }
+
+    // --- RENDER PLANTILLA Y MERCADO ---
+    function renderSquad() {
+      const container = document.getElementById("squad-list");
+      container.innerHTML = "";
+      db.squad.forEach(p => {
+        container.innerHTML += `
+          <div class="player-row">
+            <div>
+              <strong>${p.name}</strong> <span style="color:var(--text-muted); font-size:0.75rem;">(${p.pos})</span>
+            </div>
+            <div style="display:flex; gap:10px; align-items:center;">
+              <span class="player-ovr">${p.ovr}</span>
+            </div>
+          </div>
+        `;
+      });
+    }
+
+    function renderMarket() {
+      const container = document.getElementById("market-list");
+      container.innerHTML = "";
+      db.market.forEach((p, idx) => {
+        container.innerHTML += `
+          <div class="player-row" style="border-left-color: var(--neon-green);">
+            <div>
+              <strong>${p.name}</strong> <span style="color:var(--text-muted); font-size:0.75rem;">(${p.pos})</span>
+              <div style="color:var(--neon-green); font-size:0.8rem;">$${p.val}M</div>
+            </div>
+            <div style="display:flex; gap:10px; align-items:center;">
+              <span class="player-ovr" style="background:var(--neon-green);">${p.ovr}</span>
+              <button class="btn" style="padding:4px 8px; font-size:0.7rem;" onclick="buyPlayer(${idx})">Fichar</button>
+            </div>
+          </div>
+        `;
+      });
+    }
+
+    function buyPlayer(idx) {
+      const player = db.market[idx];
+      if (db.budget >= player.val) {
+        db.budget -= player.val;
+        db.squad.push(player);
+        db.market.splice(idx, 1);
+        saveData();
+        alert(`¡Fichaje oficial! ${player.name} ahora viste tus colores.`);
+      } else {
+        alert("Presupuesto insuficiente.");
+      }
+    }
+
+    // --- MOTOR DE SIMULACIÓN DE PARTIDOS ---
+    let simInterval = null;
+    let currentOpponent = null;
+
+    function renderMatchView() {
+      if (simInterval) return; // Si hay simulación corriendo, no reiniciar datos
+      
+      // El rival es el equipo alterno según la jornada
+      const otherTeams = db.teams.filter(t => t.id !== db.userTeamId);
+      currentOpponent = otherTeams[(db.week - 1) % otherTeams.length];
+
+      const userTeam = db.teams.find(t => t.id === db.userTeamId);
+      document.getElementById("home-name").innerText = userTeam.name;
+      document.getElementById("away-name").innerText = currentOpponent.name;
+      document.getElementById("next-match-text").innerText = `${userTeam.name} vs ${currentOpponent.name}`;
+      document.getElementById("match-score").innerText = "0 - 0";
+      document.getElementById("match-timer").innerText = "00'";
+      document.getElementById("match-status").innerText = "Match listo para iniciar";
+      document.getElementById("btn-start-sim").style.display = "block";
+    }
+
+    function startSimulation() {
+      document.getElementById("btn-start-sim").style.display = "none";
+      document.getElementById("match-feed").innerHTML = "";
+      
+      const userTeam = db.teams.find(t => t.id === db.userTeamId);
+      let homeScore = 0;
+      let awayScore = 0;
+      let min = 0;
+
+      document.getElementById("match-status").innerText = "¡EN JUEGO!";
+
+      simInterval = setInterval(() => {
+        min += 3;
+        document.getElementById("match-timer").innerText = `${min}'`;
+
+        // Lógica Probabilística Cyberfoot
+        const chance = Math.random() * 100;
+
+        // Ataque Local (User)
+        if (chance < 3.2) {
+          const prob = (userTeam.att - currentOpponent.def + 20) / 100;
+          if (Math.random() < Math.max(0.2, prob)) {
+            homeScore++;
+            addFeed(min, `⚽ ¡GOL DE ${userTeam.name.toUpperCase()}!`, "gol");
+          }
+        } 
+        // Ataque Visitante (Rival)
+        else if (chance > 96.8) {
+          const prob = (currentOpponent.att - userTeam.def + 20) / 100;
+          if (Math.random() < Math.max(0.2, prob)) {
+            awayScore++;
+            addFeed(min, `⚽ ¡GOL DE ${currentOpponent.name.toUpperCase()}!`, "gol");
+          }
+        }
+
+        document.getElementById("match-score").innerText = `${homeScore} - ${awayScore}`;
+
+        if (min >= 90) {
+          clearInterval(simInterval);
+          simInterval = null;
+          finishMatch(userTeam, currentOpponent, homeScore, awayScore);
+        }
+      }, 200);
+    }
+
+    function addFeed(min, msg, type = "") {
+      const feed = document.getElementById("match-feed");
+      feed.innerHTML += `<div class="feed-item ${type}"><strong>${min}'</strong> ${msg}</div>`;
+    }
+
+    function finishMatch(home, away, hScore, aScore) {
+      document.getElementById("match-status").innerText = "FINAL DEL PARTIDO";
+      addFeed(90, "🏁 El árbitro pita el final del encuentro.");
+
+      // Procesar Estadísticas
+      home.pj++; away.pj++;
+      home.dg += (hScore - aScore);
+      away.dg += (aScore - hScore);
+
+      if (hScore > aScore) { home.pts += 3; db.budget += 5; } // Bono victoria
+      else if (hScore < aScore) { away.pts += 3; }
+      else { home.pts += 1; away.pts += 1; db.budget += 2; }
+
+      // Simular partidos del resto de la liga
+      simulateRestOfLeague();
+
+      db.week++;
+      saveData();
+    }
+
+    function simulateRestOfLeague() {
+      const rest = db.teams.filter(t => t.id !== db.userTeamId && t.id !== currentOpponent.id);
+      for (let i = 0; i < rest.length; i += 2) {
+        if (rest[i+1]) {
+          const t1 = rest[i];
+          const t2 = rest[i+1];
+          const g1 = Math.floor(Math.random() * 3);
+          const g2 = Math.floor(Math.random() * 3);
+
+          t1.pj++; t2.pj++;
+          t1.dg += (g1 - g2); t2.dg += (g2 - g1);
+
+          if (g1 > g2) t1.pts += 3;
+          else if (g1 < g2) t2.pts += 3;
+          else { t1.pts += 1; t2.pts += 1; }
+        }
+      }
+    }
+
+    // Inicializar al cargar
+    updateUI();
+
+    // Registro de Service Worker PWA
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('sw.js').catch(err => console.log('SW error:', err));
+    }
+  </script>
+</body>
+</html>
